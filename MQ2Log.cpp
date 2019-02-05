@@ -7,27 +7,30 @@
 // Enabled=1
 //
 // v1.0 - Sym - 04-18-2012
+// v2.1- Eqmule 07-22-2016 - Added string safety.
 
 #include "../MQ2Plugin.h"
 #include <time.h>
 
 PreSetup("MQ2Log");
-PLUGIN_VERSION(1.0);
+PLUGIN_VERSION(2.1);
 bool bLog = false;
 bool bInit = false;
 CHAR Filename[MAX_STRING] = {0};
 
-bool DirectoryExists(LPCTSTR lpszPath) {
+bool DirectoryExists(LPCTSTR lpszPath)
+{
 	DWORD dw = ::GetFileAttributes(lpszPath);
 	return (dw != INVALID_FILE_ATTRIBUTES && (dw & FILE_ATTRIBUTE_DIRECTORY) != 0);
 }
 
-void Update_INIFileName() {
-	sprintf_s(INIFileName,"%s\\%s_%s.ini",gszINIPath, EQADDR_SERVERNAME, GetCharInfo()->Name);
+void Update_INIFileName()
+{
+	sprintf_s(INIFileName,260,"%s\\%s_%s.ini",gszINIPath, EQADDR_SERVERNAME, GetCharInfo()->Name);
 }
 
 VOID SaveINI(VOID) {
-    char szTemp[MAX_STRING];
+	CHAR szTemp[MAX_STRING] = { 0 };
     Update_INIFileName();
     sprintf_s(szTemp,"MQ2Log");
     WritePrivateProfileSection(szTemp, "", INIFileName);
@@ -65,20 +68,20 @@ void LogCommand(PSPAWNINFO pChar, PCHAR szLine) {
 VOID MacroLogClean(PSPAWNINFO pChar, PCHAR szLine)
 {
     FILE *fOut = NULL;
-    CHAR Filename[MAX_STRING] = {0};
+    CHAR Filename2[MAX_STRING] = {0};
     CHAR szBuffer[MAX_STRING] = {0};
     bRunNextCommand = TRUE;
 
     if (gszMacroName[0]==0) {
-        sprintf_s(Filename,"%s\\MacroQuest.log",gszLogPath);
+        sprintf_s(Filename2,"%s\\MacroQuest.log",gszLogPath);
     } else {
-        sprintf_s(Filename,"%s\\%s.log",gszLogPath, gszMacroName);
+        sprintf_s(Filename2,"%s\\%s.log",gszLogPath, gszMacroName);
     }
 
     if (!_stricmp(szLine,"clear")) {
-        errno_t err = fopen_s(&fOut,Filename,"wt");
+        errno_t err = fopen_s(&fOut,Filename2,"wt");
         if (err) {
-            MacroError("Couldn't open log file: %s",Filename);
+            MacroError("Couldn't open log file: %s",Filename2);
             return;
         }
         WriteChatColor("Cleared log.",USERCOLOR_DEFAULT);
@@ -86,9 +89,9 @@ VOID MacroLogClean(PSPAWNINFO pChar, PCHAR szLine)
         return;
     }
 
-    errno_t err = fopen_s(&fOut,Filename,"at");
+    errno_t err = fopen_s(&fOut,Filename2,"at");
     if (err) {
-        MacroError("Couldn't open log file: %s",Filename);
+        MacroError("Couldn't open log file: %s",Filename2);
         return;
     }
 
@@ -98,7 +101,6 @@ VOID MacroLogClean(PSPAWNINFO pChar, PCHAR szLine)
     DebugSpew("MacroLog - %s", szBuffer);
 
     fclose(fOut);
-
 }
 
 PLUGIN_API VOID InitializePlugin(VOID)
@@ -129,39 +131,55 @@ PLUGIN_API DWORD OnWriteChatColor(PCHAR Line, DWORD Color, DWORD Filter)
 	if (!bLog || !bInit) return 0;
 
 	FILE *fOut = NULL;
-	CHAR szBuffer[MAX_STRING] = {0};
-	DWORD i;
+	CHAR *szBuffer = new char[MAX_STRING];
 
-	for (i=0;i<strlen(Filename);i++) {
+	for (DWORD i=0;i<strlen(Filename);i++) {
 		if (Filename[i]=='\\') {
-			strncpy_s(szBuffer,Filename,i);
+			strncpy_s(szBuffer,MAX_STRING,Filename,i);
 		}
 	}
 
-	errno_t err = fopen_s(&fOut,Filename,"at");
+	errno_t err = fopen_s(&fOut,Filename,"atc");
 	if (err) {
-		sprintf_s(szBuffer,"Couldn't open log file: %s",Filename);
-		WriteChatColor(szBuffer,CONCOLOR_RED);
+		sprintf_s(szBuffer,MAX_STRING,"Couldn't open log file: %s",Filename);
+		//if we do this we will run out of stack when we keep getting called by ourself over and over, so no, just no.
+		//instead we call the chatwindow OnWriteChatColor directly...
+		//WriteChatColor(szBuffer,CONCOLOR_RED);
+		if (HMODULE hMod = GetModuleHandle("MQ2ChatWnd"))
+		{
+			if (fMQWriteChatColor mq2chatWriteChatColor = (fMQWriteChatColor)GetProcAddress(hMod, "OnWriteChatColor"))
+			{
+				mq2chatWriteChatColor(szBuffer, CONCOLOR_RED,Filter);
+			}
+		}
+		else {
+			OutputDebugString(szBuffer);
+		}
+		delete szBuffer;
 		return 0;;
 	}
-	char tmpbuf[128];
-	tm today = {0};
-	time_t tm;
+	char *tmpbuf = new char[128];
+	struct tm today = { 0 };
+	time_t tm = { 0 };
 	tm = time(NULL);
 	localtime_s(&today,&tm);
 	strftime( tmpbuf, 128, "%Y/%m/%d %H:%M:%S", &today );
-	CHAR PlainText[MAX_STRING]={0};
+	CHAR *PlainText = new char[MAX_STRING];
 	StripMQChat(Line,PlainText);
-	sprintf_s(szBuffer, "[%s] %s",tmpbuf,PlainText);
+	sprintf_s(szBuffer,MAX_STRING, "[%s] %s",tmpbuf,PlainText);
+	delete tmpbuf;
+	delete PlainText;
 	for(unsigned int i=0; i < strlen(szBuffer); i++) {
 		if(szBuffer[i] == 0x07) {
 			if((i+2) < strlen(szBuffer))
-				strcpy_s(&szBuffer[i], MAX_STRING, &szBuffer[i+2]);
+				strcpy_s(&szBuffer[i], sizeof(szBuffer)-i, &szBuffer[i+2]);
 			else
 				szBuffer[i] = 0;
 		}
 	}
-	fprintf(fOut,"%s\n", szBuffer);
+	fprintf(fOut,"%s\r\n", szBuffer);
+	_flushall();
 	fclose(fOut);
+	delete szBuffer;
 	return 0;
 }
