@@ -14,7 +14,7 @@
 #include <time.h>
 
 PreSetup("MQ2Log");
-PLUGIN_VERSION(2.1_1);
+PLUGIN_VERSION(2.2);
 bool bLog = false;
 bool bInit = false;
 CHAR Filename[MAX_STRING] = { 0 };
