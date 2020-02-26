@@ -10,11 +10,13 @@
 // v2.1 - Eqmule 07-22-2016 - Added string safety.
 // v2.2 - wired420 10-22-2019 - Added /mqlogcustom for custom naming file
 
-#include "../MQ2Plugin.h"
-#include <time.h>
+#include <mq/Plugin.h>
+
+#include <ctime>
 
 PreSetup("MQ2Log");
 PLUGIN_VERSION(2.2);
+
 bool bLog = false;
 bool bInit = false;
 CHAR Filename[MAX_STRING] = { 0 };
@@ -27,10 +29,10 @@ bool DirectoryExists(LPCTSTR lpszPath)
 
 void Update_INIFileName()
 {
-	sprintf_s(INIFileName, 260, "%s\\%s_%s.ini", gszINIPath, EQADDR_SERVERNAME, GetCharInfo()->Name);
+	sprintf_s(INIFileName, 260, "%s\\%s_%s.ini", gPathConfig, EQADDR_SERVERNAME, GetCharInfo()->Name);
 }
 
-VOID SaveINI(VOID) {
+void SaveINI() {
 	CHAR szTemp[MAX_STRING] = { 0 };
 	Update_INIFileName();
 	sprintf_s(szTemp, "MQ2Log");
@@ -39,14 +41,13 @@ VOID SaveINI(VOID) {
 
 }
 
-VOID LoadINI(VOID)
+void LoadINI()
 {
 	char szTemp[MAX_STRING];
 	Update_INIFileName();
 	sprintf_s(szTemp, "MQ2Log");
 	bLog = GetPrivateProfileInt(szTemp, "Enabled", 1, INIFileName) > 0 ? true : false;
-	sprintf_s(Filename, "%s\\%s_%s.log", gszLogPath, EQADDR_SERVERNAME, GetCharInfo()->Name);
-	if (!DirectoryExists(gszLogPath)) CreateDirectory(gszLogPath, NULL);
+	sprintf_s(Filename, "%s\\%s_%s.log", gPathLogs, EQADDR_SERVERNAME, GetCharInfo()->Name);
 }
 
 void LogCommand(PSPAWNINFO pChar, PCHAR szLine) {
@@ -67,7 +68,7 @@ void LogCommand(PSPAWNINFO pChar, PCHAR szLine) {
 	WriteChatf("MQ2Log :: Logging is %s", bLog ? "\agON\ax" : "\arOFF\ax");
 }
 
-VOID MacroLogClean(PSPAWNINFO pChar, PCHAR szLine)
+void MacroLogClean(PSPAWNINFO pChar, PCHAR szLine)
 {
 	FILE* fOut = NULL;
 	CHAR Filename2[MAX_STRING] = { 0 };
@@ -75,10 +76,10 @@ VOID MacroLogClean(PSPAWNINFO pChar, PCHAR szLine)
 	bRunNextCommand = TRUE;
 
 	if (gszMacroName[0] == 0) {
-		sprintf_s(Filename2, "%s\\MacroQuest.log", gszLogPath);
+		sprintf_s(Filename2, "%s\\MacroQuest.log", gPathLogs);
 	}
 	else {
-		sprintf_s(Filename2, "%s\\%s.log", gszLogPath, gszMacroName);
+		sprintf_s(Filename2, "%s\\%s.log", gPathLogs, gszMacroName);
 	}
 
 	if (!_stricmp(szLine, "clear")) {
@@ -106,7 +107,7 @@ VOID MacroLogClean(PSPAWNINFO pChar, PCHAR szLine)
 	fclose(fOut);
 }
 
-VOID MacroLogCustom(PSPAWNINFO pChar, PCHAR szLine)
+void MacroLogCustom(PSPAWNINFO pChar, PCHAR szLine)
 {
 	FILE* fOut = NULL;
 	CHAR Arg1[MAX_STRING] = { 0 };
@@ -118,7 +119,7 @@ VOID MacroLogCustom(PSPAWNINFO pChar, PCHAR szLine)
 	GetArg(Arg1, szLine, 1);
 	GetArg(Arg2, szLine, 2);
 
-	sprintf_s(Filename2, "%s\\%s.log", gszLogPath, Arg1);
+	sprintf_s(Filename2, "%s\\%s.log", gPathLogs, Arg1);
 
 	if (!_stricmp(szLine, "clear")) {
 		errno_t err = fopen_s(&fOut, Filename2, "wt");
@@ -199,20 +200,19 @@ PLUGIN_API DWORD OnWriteChatColor(PCHAR Line, DWORD Color, DWORD Filter)
 		else {
 			OutputDebugString(szBuffer);
 		}
-		delete szBuffer;
+		delete[] szBuffer;
 		return 0;;
 	}
 	char* tmpbuf = new char[128];
-	struct tm today = { 0 };
-	time_t tm = { 0 };
-	tm = time(NULL);
+	struct tm today = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	time_t tm = time(nullptr);
 	localtime_s(&today, &tm);
 	strftime(tmpbuf, 128, "%Y/%m/%d %H:%M:%S", &today);
 	CHAR* PlainText = new char[MAX_STRING];
 	StripMQChat(Line, PlainText);
 	sprintf_s(szBuffer, MAX_STRING, "[%s] %s", tmpbuf, PlainText);
-	delete tmpbuf;
-	delete PlainText;
+	delete[] tmpbuf;
+	delete[] PlainText;
 	for (unsigned int i = 0; i < strlen(szBuffer); i++) {
 		if (szBuffer[i] == 0x07) {
 			if ((i + 2) < strlen(szBuffer))
@@ -224,6 +224,6 @@ PLUGIN_API DWORD OnWriteChatColor(PCHAR Line, DWORD Color, DWORD Filter)
 	fprintf(fOut, "%s\r\n", szBuffer);
 	_flushall();
 	fclose(fOut);
-	delete szBuffer;
+	delete[] szBuffer;
 	return 0;
 }
