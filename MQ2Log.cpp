@@ -21,12 +21,6 @@ bool bLog = false;
 bool bInit = false;
 CHAR Filename[MAX_STRING] = { 0 };
 
-bool DirectoryExists(LPCTSTR lpszPath)
-{
-	DWORD dw = ::GetFileAttributes(lpszPath);
-	return (dw != INVALID_FILE_ATTRIBUTES && (dw & FILE_ATTRIBUTE_DIRECTORY) != 0);
-}
-
 void Update_INIFileName()
 {
 	sprintf_s(INIFileName, 260, "%s\\%s_%s.ini", gPathConfig, EQADDR_SERVERNAME, GetCharInfo()->Name);
