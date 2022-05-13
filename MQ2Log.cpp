@@ -23,7 +23,7 @@ CHAR Filename[MAX_STRING] = { 0 };
 
 void Update_INIFileName()
 {
-	sprintf_s(INIFileName, 260, "%s\\%s_%s.ini", gPathConfig, EQADDR_SERVERNAME, GetCharInfo()->Name);
+	sprintf_s(INIFileName, 260, "%s\\%s_%s.ini", gPathConfig, GetServerShortName(), pLocalPC->Name);
 }
 
 void SaveINI() {
@@ -41,7 +41,7 @@ void LoadINI()
 	Update_INIFileName();
 	sprintf_s(szTemp, "MQ2Log");
 	bLog = GetPrivateProfileInt(szTemp, "Enabled", 1, INIFileName) > 0 ? true : false;
-	sprintf_s(Filename, "%s\\%s_%s.log", gPathLogs, EQADDR_SERVERNAME, GetCharInfo()->Name);
+	sprintf_s(Filename, "%s\\%s_%s.log", gPathLogs, GetServerShortName(), GetCharInfo()->Name);
 }
 
 void LogCommand(PSPAWNINFO pChar, PCHAR szLine) {
