@@ -77,8 +77,8 @@ void MacroLogClean(PSPAWNINFO pChar, PCHAR szLine)
 	}
 
 	if (!_stricmp(szLine, "clear")) {
-		errno_t err = fopen_s(&fOut, Filename2, "wt");
-		if (err) {
+		fOut = _fsopen(Filename2, "wt", _SH_DENYWR);
+		if (!fOut) {
 			MacroError("Couldn't open log file: %s", Filename2);
 			return;
 		}
@@ -87,8 +87,8 @@ void MacroLogClean(PSPAWNINFO pChar, PCHAR szLine)
 		return;
 	}
 
-	errno_t err = fopen_s(&fOut, Filename2, "at");
-	if (err) {
+	fOut = _fsopen(Filename2, "at", _SH_DENYWR);
+	if (!fOut) {
 		MacroError("Couldn't open log file: %s", Filename2);
 		return;
 	}
@@ -116,8 +116,8 @@ void MacroLogCustom(PSPAWNINFO pChar, PCHAR szLine)
 	sprintf_s(Filename2, "%s\\%s.log", gPathLogs, Arg1);
 
 	if (!_stricmp(szLine, "clear")) {
-		errno_t err = fopen_s(&fOut, Filename2, "wt");
-		if (err) {
+		fOut = _fsopen(Filename2, "wt", _SH_DENYWR);
+		if (!fOut) {
 			MacroError("Couldn't open log file: %s", Filename2);
 			return;
 		}
@@ -126,8 +126,8 @@ void MacroLogCustom(PSPAWNINFO pChar, PCHAR szLine)
 		return;
 	}
 
-	errno_t err = fopen_s(&fOut, Filename2, "at");
-	if (err) {
+	fOut = _fsopen(Filename2, "at", _SH_DENYWR);
+	if (!fOut) {
 		MacroError("Couldn't open log file: %s", Filename2);
 		return;
 	}
@@ -178,8 +178,8 @@ PLUGIN_API DWORD OnWriteChatColor(PCHAR Line, DWORD Color, DWORD Filter)
 		}
 	}
 
-	errno_t err = fopen_s(&fOut, Filename, "atc");
-	if (err) {
+	fOut = _fsopen(Filename, "atc", _SH_DENYWR);
+	if (!fOut) {
 		sprintf_s(szBuffer, MAX_STRING, "Couldn't open log file: %s", Filename);
 		//if we do this we will run out of stack when we keep getting called by ourself over and over, so no, just no.
 		//instead we call the chatwindow OnWriteChatColor directly...
