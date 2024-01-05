@@ -94,7 +94,7 @@ void MacroLogClean(PSPAWNINFO pChar, PCHAR szLine)
 	}
 
 	sprintf_s(szBuffer, "%s", szLine);
-	ParseMacroParameter(pChar, szBuffer);
+	ParseMacroParameter(szBuffer);
 	fprintf(fOut, "%s\n", szBuffer);
 	DebugSpew("MacroLog - %s", szBuffer);
 
@@ -133,7 +133,7 @@ void MacroLogCustom(PSPAWNINFO pChar, PCHAR szLine)
 	}
 
 	sprintf_s(szBuffer, "%s", Arg2);
-	ParseMacroParameter(pChar, szBuffer);
+	ParseMacroParameter(szBuffer);
 	fprintf(fOut, "%s\n", szBuffer);
 	DebugSpew("MacroLog - %s", szBuffer);
 
